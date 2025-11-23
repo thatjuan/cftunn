@@ -21,6 +21,7 @@ import (
 var (
 	portFlag   int
 	domainFlag string
+	Version    = "dev"
 )
 
 var rootCmd = &cobra.Command{
@@ -38,6 +39,7 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.Version = Version
 	rootCmd.Flags().IntVarP(&portFlag, "port", "p", 0, "Local port to tunnel to")
 	rootCmd.Flags().StringVarP(&domainFlag, "domain", "d", "", "Domain to expose (e.g. dev.example.com)")
 }

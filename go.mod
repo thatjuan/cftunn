@@ -1,4 +1,4 @@
-module github.com/user/cftunn
+module github.com/thatjuan/cftunn
 
 go 1.24.1
 

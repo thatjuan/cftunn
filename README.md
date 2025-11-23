@@ -42,6 +42,20 @@ cd cftunn
 make install
 ```
 
+## 🔄 Updating
+
+To update to the latest version, simply run the installation command again.
+
+**Automatic:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/thatjuan/cftunn/main/install.sh | bash
+```
+
+**From Source:**
+```bash
+go install github.com/thatjuan/cftunn@latest
+```
+
 ### Prerequisites
 
 **1. cloudflared**  
