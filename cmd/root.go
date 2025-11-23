@@ -94,28 +94,29 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 	fmt.Println("Using 'cloudflared' credentials (cert.pem found)...")
 
 	tunnelName := fmt.Sprintf("cftunn-%s", strings.ReplaceAll(domainFlag, ".", "-"))
+	var token string
 	
 	// 1. Create Tunnel
-	// Try to create. If it fails, we assume it might exist.
-	// We can't easily check existence without parsing 'list', so we'll try to delete first if create fails?
-	// Or just try to delete blindly first? simpler to ensure clean state.
-	// But deleting requires it to exist.
-	// Let's try create, if fail, delete and create.
-	
+	// Try to create. 
 	fmt.Printf("Ensuring tunnel '%s' exists...\n", tunnelName)
-	// We can use 'cloudflared tunnel list' to check, but parsing is annoying.
-	// Let's try to create.
 	if err := execCloudflaredSilent("tunnel", "create", tunnelName); err != nil {
-		// Assume it exists, try to delete
-		fmt.Printf("Tunnel might exist, recreating...\n")
-		if err := execCloudflared("tunnel", "delete", tunnelName); err != nil {
-			// If delete fails, maybe it didn't exist and create failed for another reason?
-			// Or it belongs to another user?
-			// Try create again just in case delete worked or was unneeded
-		}
-		if err := execCloudflared("tunnel", "create", tunnelName); err != nil {
-			fmt.Printf("Error creating tunnel: %v\n", err)
-			os.Exit(1)
+		// Creation failed, likely exists.
+		// Try to fetch token to reuse it
+		fmt.Println("Tunnel exists, trying to fetch token...")
+		out, err := exec.Command("cloudflared", "tunnel", "token", tunnelName).Output()
+		if err == nil {
+			token = strings.TrimSpace(string(out))
+			fmt.Printf("Successfully retrieved token for existing tunnel '%s'.\n", tunnelName)
+		} else {
+			// Could not get token, must recreate
+			fmt.Printf("Could not get token (err: %v), recreating tunnel...\n", err)
+			if err := execCloudflared("tunnel", "delete", tunnelName); err != nil {
+				// Ignore delete error
+			}
+			if err := execCloudflared("tunnel", "create", tunnelName); err != nil {
+				fmt.Printf("Error creating tunnel: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -145,8 +146,15 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 	fmt.Printf("Starting tunnel to localhost:%d...\n", portFlag)
 	fmt.Printf("Your site should be available at https://%s shortly.\n", domainFlag)
 
-	// We don't need --token because cloudflared finds the cred file for the named tunnel automatically
-	c := exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), tunnelName)
+	var c *exec.Cmd
+	if token != "" {
+		// Run with token
+		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), "--token", token)
+	} else {
+		// Run with name (uses local credentials file)
+		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), tunnelName)
+	}
+
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 
@@ -262,7 +270,7 @@ func runAPIMode(cmd *cobra.Command, args []string) {
 	}
 
 	if len(tunnels) > 0 {
-		// Delete and Recreate to rotate secret
+		// Delete and Recreate to rotate secret (simplest path for API mode)
 		oldTunnel := tunnels[0]
 		fmt.Printf("Found existing tunnel %s, recreating to rotate secret...\n", oldTunnel.ID)
 		err := api.DeleteTunnel(ctx, cloudflare.AccountIdentifier(accountID), oldTunnel.ID)
@@ -326,9 +334,6 @@ func runAPIMode(cmd *cobra.Command, args []string) {
 	fmt.Printf("Your site should be available at https://%s shortly.\n", domainFlag)
 	
 	// Run cloudflared with --url and --token
-	// This creates a quick-tunnel style connection but anchored to our named tunnel.
-	// Actually, --url creates a quick tunnel if no tunnel is specified?
-	// If --token is provided, --url defines the origin service but uses the token's tunnel identity!
 	cmdArgs := []string{"tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), "--token", finalToken}
 	c := exec.Command("cloudflared", cmdArgs...)
 	c.Stdout = os.Stdout
@@ -343,7 +348,7 @@ func runAPIMode(cmd *cobra.Command, args []string) {
 	}
 	
 	go func() {
-		<-		sigs
+		<-sigs
 		fmt.Println("\nStopping tunnel...")
 		c.Process.Signal(syscall.SIGINT)
 	}()
