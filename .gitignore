@@ -1,0 +1,39 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+*.wasm
+cftunn
+
+# Test binary, if any
+*.test
+
+# Output of the test coverage tool, if any
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Editor configuration
+.idea/
+.vscode/
+.history/
+
+# OS generated files
+.DS_Store
+.Trash
+Thumbs.db
+
+# Logs
+*.log
+
+# Cloudflared credentials (should not be in repo)
+.cloudflared/
+
+# Temp files
+*.tmp
+temp-*
