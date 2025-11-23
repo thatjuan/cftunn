@@ -102,7 +102,7 @@ We welcome contributions!
 1.  Fork the repository.
 2.  Clone your fork:
     ```bash
-    git clone https://github.com/YOUR_USERNAME/cftunn.git
+    git clone https://github.com/thatjuan/cftunn.git
     cd cftunn
     ```
 3.  Install dependencies:
