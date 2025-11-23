@@ -18,6 +18,14 @@ Designed for developers who want the ease of `ngrok` but with their own custom d
 
 ## 🚀 Installation
 
+### Automatic (Recommended)
+
+Install the latest binary for your OS/Arch:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/thatjuan/cftunn/main/install.sh | bash
+```
+
 ### From Source
 
 You need [Go](https://go.dev/doc/install) 1.20+ installed.
@@ -29,7 +37,7 @@ go install github.com/thatjuan/cftunn@latest
 Or clone the repo:
 
 ```bash
-git clone https://github.com/user/cftunn.git
+git clone https://github.com/thatjuan/cftunn.git
 cd cftunn
 make install
 ```
