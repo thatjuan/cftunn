@@ -23,7 +23,7 @@ Designed for developers who want the ease of `ngrok` but with their own custom d
 You need [Go](https://go.dev/doc/install) 1.20+ installed.
 
 ```bash
-go install github.com/user/cftunn@latest
+go install github.com/thatjuan/cftunn@latest
 ```
 
 Or clone the repo:
