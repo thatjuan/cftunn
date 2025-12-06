@@ -104,8 +104,27 @@ Usage:
   cftunn [PORT] [DOMAIN] [flags]
 
 Flags:
-  -h, --help     help for cftunn
+  -D, --debug           Enable debug output for troubleshooting
+  -d, --domain string   Domain to expose (e.g. dev.example.com)
+  -h, --help            help for cftunn
+  -p, --port int        Local port to tunnel to
+  -v, --version         version for cftunn
 ```
+
+### Troubleshooting
+
+If you encounter issues during tunnel setup, use the `--debug` flag to get detailed output:
+
+```bash
+cftunn 3000 dev.example.com --debug
+```
+
+This will show:
+- Authentication method detection (API token vs cert.pem)
+- cloudflared commands being executed
+- API calls and responses
+- Zone and DNS record lookups
+- Tunnel creation/deletion operations
 
 ## 🛠️ Development & Contributing
 
