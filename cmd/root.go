@@ -21,6 +21,7 @@ import (
 var (
 	portFlag   int
 	domainFlag string
+	hostFlag   string
 	debugFlag  bool
 	Version    = "dev"
 )
@@ -43,6 +44,7 @@ func init() {
 	rootCmd.Version = Version
 	rootCmd.Flags().IntVarP(&portFlag, "port", "p", 0, "Local port to tunnel to")
 	rootCmd.Flags().StringVarP(&domainFlag, "domain", "d", "", "Domain to expose (e.g. dev.example.com)")
+	rootCmd.Flags().StringVarP(&hostFlag, "host", "H", "localhost", "Target host to tunnel to (default: localhost)")
 	rootCmd.Flags().BoolVarP(&debugFlag, "debug", "D", false, "Enable debug output for troubleshooting")
 }
 
@@ -185,20 +187,20 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 	fmt.Println("DNS routed.")
 
 	// 3. Run
-	fmt.Printf("Starting tunnel to localhost:%d...\n", portFlag)
+	fmt.Printf("Starting tunnel to %s:%d...\n", hostFlag, portFlag)
 	fmt.Printf("Your site should be available at https://%s shortly.\n", domainFlag)
 
 	var c *exec.Cmd
 	if token != "" {
 		// Run with token
 		debugLog("Starting tunnel with token (length: %d)", len(token))
-		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), "--token", token)
+		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("%s:%d", hostFlag, portFlag), "--token", token)
 	} else {
 		// Run with name (uses local credentials file)
 		debugLog("Starting tunnel with name: %s", tunnelName)
-		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), tunnelName)
+		c = exec.Command("cloudflared", "tunnel", "run", "--url", fmt.Sprintf("%s:%d", hostFlag, portFlag), tunnelName)
 	}
-	debugLog("Tunnel command: cloudflared tunnel run --url localhost:%d %s", portFlag, func() string { if token != "" { return "--token <redacted>" }; return tunnelName }())
+	debugLog("Tunnel command: cloudflared tunnel run --url %s:%d %s", hostFlag, portFlag, func() string { if token != "" { return "--token <redacted>" }; return tunnelName }())
 
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
@@ -426,12 +428,12 @@ func runAPIMode(cmd *cobra.Command, args []string) {
 	}
 	debugLog("Token generated (length: %d)", len(finalToken))
 
-	fmt.Printf("Starting tunnel to localhost:%d...\n", portFlag)
+	fmt.Printf("Starting tunnel to %s:%d...\n", hostFlag, portFlag)
 	fmt.Printf("Your site should be available at https://%s shortly.\n", domainFlag)
 
 	// Run cloudflared with --url and --token
-	debugLog("Executing: cloudflared tunnel run --url localhost:%d --token <redacted>", portFlag)
-	cmdArgs := []string{"tunnel", "run", "--url", fmt.Sprintf("localhost:%d", portFlag), "--token", finalToken}
+	debugLog("Executing: cloudflared tunnel run --url %s:%d --token <redacted>", hostFlag, portFlag)
+	cmdArgs := []string{"tunnel", "run", "--url", fmt.Sprintf("%s:%d", hostFlag, portFlag), "--token", finalToken}
 	c := exec.Command("cloudflared", cmdArgs...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr

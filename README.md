@@ -90,6 +90,14 @@ Expose your local server running on port `3000` to `dev.example.com`:
 cftunn 3000 dev.example.com
 ```
 
+### Advanced Usage
+
+Tunnel to a specific host (e.g., a container or VM):
+
+```bash
+cftunn 8080 dev.example.com --host 192.168.1.100
+```
+
 ### What happens next?
 1.  `cftunn` checks for the tunnel `cftunn-dev-example-com`.
 2.  If it doesn't exist, it creates it.
@@ -107,6 +115,7 @@ Flags:
   -D, --debug           Enable debug output for troubleshooting
   -d, --domain string   Domain to expose (e.g. dev.example.com)
   -h, --help            help for cftunn
+  -H, --host string     Target host to tunnel to (default: localhost)
   -p, --port int        Local port to tunnel to
   -v, --version         version for cftunn
 ```
