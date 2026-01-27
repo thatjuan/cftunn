@@ -45,7 +45,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&portFlag, "port", "p", 0, "Local port to tunnel to")
 	rootCmd.Flags().StringVarP(&domainFlag, "domain", "d", "", "Domain to expose (e.g. dev.example.com)")
 	rootCmd.Flags().StringVarP(&hostFlag, "host", "H", "localhost", "Target host to tunnel to (default: localhost)")
-	rootCmd.Flags().BoolVarP(&debugFlag, "debug", "D", false, "Enable debug output for troubleshooting")
+	rootCmd.PersistentFlags().BoolVarP(&debugFlag, "debug", "D", false, "Enable debug output for troubleshooting")
 }
 
 func debugLog(format string, args ...interface{}) {
@@ -161,8 +161,15 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 	// 2. Route DNS
 	fmt.Printf("Routing DNS for %s...\n", domainFlag)
 	debugLog("Routing DNS: tunnel=%s, domain=%s", tunnelName, domainFlag)
-	if err := execCloudflaredSilent("tunnel", "route", "dns", tunnelName, domainFlag); err != nil {
-		// Failed, likely exists.
+	output, err := execCloudflaredOutput("tunnel", "route", "dns", tunnelName, domainFlag)
+	if isDNSRouteInvalid(output, domainFlag) {
+		debugLog("Domain zone not found in account: %s", domainFlag)
+		fmt.Printf("Error: The domain '%s' is not in your Cloudflare account.\n", domainFlag)
+		fmt.Println("Please ensure the domain's zone is added to your Cloudflare account.")
+		os.Exit(1)
+	}
+	if err != nil {
+		// Failed, likely DNS record already exists.
 		debugLog("DNS routing failed, record may already exist")
 		fmt.Printf("Warning: DNS record for %s might already exist.\n", domainFlag)
 		prompt := promptui.Prompt{
@@ -177,8 +184,15 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 
 		// Overwrite
 		debugLog("User confirmed overwrite, forcing DNS route...")
-		if err := execCloudflared("tunnel", "route", "dns", "-f", tunnelName, domainFlag); err != nil {
-			debugLog("DNS routing with force failed: %v", err)
+		output, err = execCloudflaredOutput("tunnel", "route", "dns", "-f", tunnelName, domainFlag)
+		if isDNSRouteInvalid(output, domainFlag) {
+			debugLog("Domain zone not found in account: %s", domainFlag)
+			fmt.Printf("Error: The domain '%s' is not in your Cloudflare account.\n", domainFlag)
+			fmt.Println("Please ensure the domain's zone is added to your Cloudflare account.")
+			os.Exit(1)
+		}
+		if err != nil {
+			debugLog("DNS routing with force failed: %v\nOutput: %s", err, output)
 			fmt.Printf("Error routing DNS: %v\n", err)
 			os.Exit(1)
 		}
@@ -253,6 +267,46 @@ func execCloudflaredSilent(args ...string) error {
 		return err
 	}
 	return cmd.Run()
+}
+
+func execCloudflaredOutput(args ...string) (string, error) {
+	debugLog("Executing: cloudflared %s", strings.Join(args, " "))
+	cmd := exec.Command("cloudflared", args...)
+	output, err := cmd.CombinedOutput()
+	out := string(output)
+	if err != nil {
+		debugLog("Command failed: %v", err)
+		debugLog("Output: %s", out)
+	} else {
+		debugLog("Command succeeded")
+		if debugFlag {
+			debugLog("Output: %s", out)
+		}
+	}
+	return out, err
+}
+
+func isDNSRouteInvalid(output string, expectedDomain string) bool {
+	lower := strings.ToLower(output)
+	expectedLower := strings.ToLower(expectedDomain)
+
+	// Check for explicit zone-not-found errors
+	if strings.Contains(lower, "failed to find zone") ||
+		strings.Contains(lower, "could not find zone") ||
+		strings.Contains(lower, "zone could not be found") {
+		return true
+	}
+
+	// cloudflared may silently append the domain to a default zone it has access to,
+	// e.g. "dev.orientamosal.com" becomes "dev.orientamosal.com.clustera.io".
+	// Detect this by checking the output doesn't reference the exact expected domain
+	// followed by unexpected suffixes.
+	if strings.Contains(lower, expectedLower+".") {
+		// The expected domain appears but with an extra suffix — wrong zone
+		return true
+	}
+
+	return false
 }
 
 func runAPIMode(cmd *cobra.Command, args []string) {
