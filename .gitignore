@@ -37,3 +37,9 @@ Thumbs.db
 # Temp files
 *.tmp
 temp-*
+
+# Claude Code workspace
+.claude/
+
+# Local databases
+*.db

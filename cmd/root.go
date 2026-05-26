@@ -23,6 +23,7 @@ var (
 	domainFlag string
 	hostFlag   string
 	debugFlag  bool
+	yesFlag    bool
 	Version    = "dev"
 )
 
@@ -46,6 +47,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&domainFlag, "domain", "d", "", "Domain to expose (e.g. dev.example.com)")
 	rootCmd.Flags().StringVarP(&hostFlag, "host", "H", "localhost", "Target host to tunnel to (default: localhost)")
 	rootCmd.PersistentFlags().BoolVarP(&debugFlag, "debug", "D", false, "Enable debug output for troubleshooting")
+	rootCmd.Flags().BoolVarP(&yesFlag, "yes", "y", false, "Automatically answer yes to all prompts")
 }
 
 func debugLog(format string, args ...interface{}) {
@@ -172,14 +174,18 @@ func runWrapperMode(cmd *cobra.Command, args []string) {
 		// Failed, likely DNS record already exists.
 		debugLog("DNS routing failed, record may already exist")
 		fmt.Printf("Warning: DNS record for %s might already exist.\n", domainFlag)
-		prompt := promptui.Prompt{
-			Label:     "Do you want to overwrite it",
-			IsConfirm: true,
-		}
-		if _, err := prompt.Run(); err != nil {
-			debugLog("User aborted DNS overwrite")
-			fmt.Println("Aborted.")
-			os.Exit(0)
+		if !yesFlag {
+			prompt := promptui.Prompt{
+				Label:     "Do you want to overwrite it",
+				IsConfirm: true,
+			}
+			if _, err := prompt.Run(); err != nil {
+				debugLog("User aborted DNS overwrite")
+				fmt.Println("Aborted.")
+				os.Exit(0)
+			}
+		} else {
+			debugLog("Auto-confirming DNS overwrite (--yes flag)")
 		}
 
 		// Overwrite
@@ -354,16 +360,19 @@ func runAPIMode(cmd *cobra.Command, args []string) {
 		debugLog("Existing record: id=%s, content=%s", record.ID, record.Content)
 		fmt.Printf("Warning: A CNAME record for %s already exists pointing to %s.\n", domainFlag, record.Content)
 
-		prompt := promptui.Prompt{
-			Label:     "Do you want to overwrite it",
-			IsConfirm: true,
-		}
-
-		_, err := prompt.Run()
-		if err != nil {
-			debugLog("User aborted DNS overwrite")
-			fmt.Println("Aborted.")
-			os.Exit(0)
+		if !yesFlag {
+			prompt := promptui.Prompt{
+				Label:     "Do you want to overwrite it",
+				IsConfirm: true,
+			}
+			_, err := prompt.Run()
+			if err != nil {
+				debugLog("User aborted DNS overwrite")
+				fmt.Println("Aborted.")
+				os.Exit(0)
+			}
+		} else {
+			debugLog("Auto-confirming DNS overwrite (--yes flag)")
 		}
 		existingRecordID = record.ID
 		debugLog("User confirmed overwrite for record: %s", existingRecordID)

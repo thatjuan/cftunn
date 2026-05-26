@@ -78,7 +78,60 @@ You need to be authenticated with Cloudflare.
     ```bash
     export CLOUDFLARE_API_TOKEN=your_api_token
     ```
-    *Required Permissions*: `Zone:DNS:Edit`, `Account:Cloudflare Tunnel:Edit`.
+    See [Creating an API Token](#-creating-an-api-token) below for the required permissions and step-by-step instructions.
+
+## 🔑 Creating an API Token
+
+`cftunn` needs an API token with these permissions:
+
+| Scope    | Permission              | Why                                                 |
+| -------- | ----------------------- | --------------------------------------------------- |
+| Account  | `Cloudflare Tunnel:Edit` | Create/delete tunnels and read account info.        |
+| Zone     | `DNS:Edit`              | Create/update the CNAME pointing to your tunnel.    |
+| Zone     | `Zone:Read`             | Look up the zone ID for your domain.                |
+
+### Option 1: Cloudflare Dashboard (Recommended)
+
+1.  Open [https://dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens).
+2.  Click **Create Token** → **Create Custom Token** → **Get started**.
+3.  Set **Token name** (e.g. `cftunn`).
+4.  Under **Permissions**, add the three rows above.
+5.  Under **Account Resources**, select **Include → \<your account\>**.
+6.  Under **Zone Resources**, select **Include → All zones** (or pin to a specific zone).
+7.  Click **Continue to summary** → **Create Token**.
+8.  Copy the token and export it:
+    ```bash
+    export CLOUDFLARE_API_TOKEN=<paste-here>
+    ```
+9.  Verify it works:
+    ```bash
+    cftunn auth whoami
+    ```
+
+### Option 2: Mint via `cftunn auth create-token` (Advanced)
+
+If you already hold a **bootstrap token** with the `API Tokens Write` permission (created from the dashboard's *Create Additional Tokens* template), `cftunn` can mint a properly scoped token for itself:
+
+```bash
+# Export the bootstrap token first
+export CLOUDFLARE_API_TOKEN=<bootstrap-token>
+
+# Mint a cftunn-scoped token (uses first accessible account, all zones)
+cftunn auth create-token
+
+# Or pin to a specific zone and account
+cftunn auth create-token --zone example.com --account <account-id> --name cftunn-prod
+```
+
+The new token's value is printed once. Export it for subsequent `cftunn` runs:
+
+```bash
+export CLOUDFLARE_API_TOKEN=<new-token>
+```
+
+> **Note:** There is no fully zero-state automation path. Cloudflare's `POST /user/tokens` requires an existing privileged token, and there is no public OAuth flow or `cloudflared` subcommand for first-time token issuance — so the dashboard step (Option 1) is unavoidable for the very first token.
+
+References: [Create tokens via API](https://developers.cloudflare.com/fundamentals/api/how-to/create-via-api/), [Permission groups](https://developers.cloudflare.com/fundamentals/api/reference/permissions/).
 
 ## 📖 Usage
 
