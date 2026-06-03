@@ -43,3 +43,6 @@ temp-*
 
 # Local databases
 *.db
+
+# GoReleaser build output
+dist/

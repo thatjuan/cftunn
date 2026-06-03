@@ -18,7 +18,13 @@ Designed for developers who want the ease of `ngrok` but with their own custom d
 
 ## 🚀 Installation
 
-### Automatic (Recommended)
+### Homebrew (Recommended)
+
+```bash
+brew install thatjuan/tap/cftunn
+```
+
+### Automatic
 
 Install the latest binary for your OS/Arch:
 
@@ -45,6 +51,11 @@ make install
 ## 🔄 Updating
 
 To update to the latest version, simply run the installation command again.
+
+**Homebrew:**
+```bash
+brew upgrade cftunn
+```
 
 **Automatic:**
 ```bash

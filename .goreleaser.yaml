@@ -17,7 +17,7 @@ builds:
       - -s -w -X github.com/thatjuan/cftunn/cmd.Version={{.Version}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ .ProjectName }}_
@@ -29,7 +29,23 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
+
+# Using `brews` (Homebrew formula) rather than the newer `homebrew_casks`:
+# casks quarantine downloaded binaries via Gatekeeper, which would block our
+# unsigned/un-notarized binary. The `brews` deprecation is a warning only.
+brews:
+  - name: cftunn
+    repository:
+      owner: thatjuan
+      name: homebrew-tap
+    homepage: "https://github.com/thatjuan/cftunn"
+    description: "CLI to simplify Cloudflare Tunnel creation"
+    license: "MIT"
+    dependencies:
+      - name: cloudflared
+    test: |
+      system "#{bin}/cftunn", "--version"
 
 checksum:
   name_template: 'checksums.txt'
